@@ -138,3 +138,7 @@ artifact
 
 #local fine
 test.ipynb
+.env
+venv/
+__pycache__/
+*.pyc
