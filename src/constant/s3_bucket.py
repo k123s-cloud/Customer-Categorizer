@@ -1,2 +1,4 @@
-TRAINING_BUCKET_NAME = "customer-segmentation-bucket"
-PREDICTION_BUCKET_NAME = "sensor-datasource"
+TRAINING_BUCKET_NAME = "customer-segmentation-bucket-123"
+PREDICTION_BUCKET_NAME = "customer-segmentation-bucket-123"
+
+

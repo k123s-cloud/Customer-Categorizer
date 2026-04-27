@@ -141,9 +141,11 @@
                     
                 </form>
             </div>
-            <div class="text-center text-black">
-                <h2 class="display-4 fw-bolder">Customer is in Cluster : {{context}} </h2>
+            {% if result is defined%}
+            <div style="background: {{ bg_color }}; color: {{ text_color }}; padding:15px; border-radius:8px; margin-top:20px; text-align:center;">
+                <h4>Customer is in Cluster: {{ result }}</h4>
             </div>
+            {% endif %}
         </div>
     </section>
     <script src="https://code.jquery.com/jquery-3.2.1.js"></script>

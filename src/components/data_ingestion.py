@@ -76,10 +76,19 @@ class DataIngestion:
         try:
             logging.info(f"Exporting data from mongodb")
             customer_data = CustomerData()
+            print("COLLECTION NAME USED:", COLLECTION_NAME)
+            print("CUSTOMER DATA OBJECT:", customer_data.__dict__)
             customer_dataframe = customer_data.export_collection_as_dataframe(
                 collection_name=COLLECTION_NAME
             )
-           
+            #print("CUSTOMER DATA OBJECT:", customer_data.__dict__)
+            print("MONGODB RAW DATA:")
+            print(customer_dataframe.head())
+            print("FIRST RECORD FROM APP:")
+            if not customer_dataframe.empty:
+                print(customer_dataframe.head())
+            print("MONGODB RAW COLUMNS:")
+            print(customer_dataframe.columns)
             logging.info(f"Shape of dataframe: {customer_dataframe.shape}")
             feature_store_file_path  = self.data_ingestion_config.feature_store_file_path
             dir_path = os.path.dirname(feature_store_file_path)
@@ -106,11 +115,29 @@ class DataIngestion:
 
         try:
             dataframe = self.export_data_into_feature_store()
-
+            #if dataframe.shape[1]==1:
+                #columns=list(_schema_config["columns"][0].keys())
+                #dataframe=dataframe.iloc[:,0].str.split("\t",expand=True)
+                #dataframe.columns=columns
+                #dataframe=dataframe.iloc[1:]
             _schema_config = self.utils.read_schema_config_file()
+            if dataframe.shape[1]==1:
+                columns = [list(col.keys())[0] for col in _schema_config["columns"]]
+                dataframe = dataframe.iloc[:, 0].str.split("\t", expand=True)
 
-            dataframe = dataframe.drop(_schema_config["drop_columns"], axis=1)
+                print("DATAFRAME COLUMNS:", dataframe.shape[1])
+                print("SCHEMA COLUMNS:", len(columns))
 
+                dataframe = dataframe.iloc[:, :len(columns)]
+                dataframe.columns = columns
+
+            dataframe = dataframe.drop(_schema_config["drop_columns"],axis=1, errors="ignore")
+            print("BEFORE DROP:", dataframe.shape)
+            dataframe = dataframe.drop(_schema_config["drop_columns"],axis=1, errors="ignore")
+            print("AFTER DROP:", dataframe.shape)
+            print("COLUMNS:", dataframe.columns.tolist())
+            
+            
             logging.info("Got the data from mongodb")
 
             self.split_data_as_train_test(dataframe)
@@ -122,7 +149,7 @@ class DataIngestion:
             )
             
             data_ingestion_artifact = DataIngestionArtifact(
-                trained_file_path=self.data_ingestion_config.training_file_path,
+                train_file_path=self.data_ingestion_config.training_file_path,
                 test_file_path=self.data_ingestion_config.testing_file_path
             )
 

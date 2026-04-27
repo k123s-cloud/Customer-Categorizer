@@ -34,7 +34,7 @@ def convert_test_numpy_array_to_dataframe(array:str):
     columns = prediction_config['prediction_schema']['columns'].keys()
     
     
-    dataframe = pd.DataFrame(array, columns=columns)
+    dataframe = pd.DataFrame(array)
     return dataframe
 
 class ModelEvaluation:
@@ -69,7 +69,7 @@ class ModelEvaluation:
             # x_test = pd.read_csv(self.data_ingestion_artifact.test_file_path)
             
             x_test, y_test = pd.DataFrame(test_arr[:, :-1]), pd.DataFrame(test_arr[:, -1])
-            x_test = convert_test_numpy_array_to_dataframe(array= test_arr[:, :-1])
+            #x_test = pd.DataFrame(test_arr[:, :-1])
            
 
             
@@ -77,14 +77,14 @@ class ModelEvaluation:
           
             trained_model = self.utils.load_object(file_path=self.model_trainer_artifact.trained_model_file_path)
             # y.replace(TargetValueMapping().to_dict(), inplace=True)
-            y_hat_trained_model = trained_model.predict(x_test)
+            y_hat_trained_model = trained_model.trained_model_object.predict(x_test)
 
             trained_model_f1_score = f1_score(y_test, y_hat_trained_model, average='weighted')
             best_model_f1_score = None
             best_model_metric_artifact = None
-            best_model = self.get_best_model()
+            best_model = None
             if best_model is not None:
-                y_hat_best_model = best_model.predict(x_test)
+                y_hat_best_model = best_model.trained_model_object.predict(x_test)
                 best_model_f1_score = f1_score(y_test, y_hat_best_model,average='weighted')
                 best_model_metric_artifact = calculate_metric(best_model, x_test, y_test)
             # calucate how much percentage training model accuracy is increased/decreased

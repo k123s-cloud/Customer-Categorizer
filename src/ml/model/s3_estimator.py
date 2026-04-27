@@ -1,3 +1,5 @@
+import os
+
 from src.cloud_storage.aws_storage import SimpleStorageService
 from src.exception import CustomerException
 from src.ml.model.estimator import CustomerSegmentationModel
@@ -46,13 +48,15 @@ class CustomerClusterEstimator:
         """
         
         try:
-            self.s3.upload_file(from_file,
-                                to_filename=self.model_path,
-                                bucket_name=self.bucket_name,
-                                remove=remove
-                                )
+            print("Model_path: {}".format(self.model_path))
+            print("File_path: {}".format(from_file))
+            print("-----------------------------------------------------------------")
+            os.makedirs(os.path.dirname("model.pkl"), exist_ok=True)
+            shutil.copy(from_file, "model.pkl")
+            if remove:
+                os.remove(from_file)
         except Exception as e:
-            raise (e, sys)
+            raise CustomerException(e, sys) from e
 
 
     def predict(self,dataframe:DataFrame):
@@ -65,4 +69,4 @@ class CustomerClusterEstimator:
                 self.loaded_model = self.load_model()
             return self.loaded_model.predict(dataframe)
         except Exception as e:
-            raise CustomerException(e,sys)
+            raise CustomerException(e,sys) from e

@@ -1,10 +1,20 @@
-from fastapi import FastAPI, Request
-from typing import Optional
+from email.mime import text
+from urllib import request
+
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi import Request
+#from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
-from uvicorn import run as app_run
+from fastapi.responses import JSONResponse
+#from uvicorn import run as app_run
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+from dotenv import load_dotenv
+import os
+import numpy as np
 
 
 from src.pipeline.prediction_pipeline import PredictionPipeline
@@ -14,15 +24,25 @@ from src.constant.application import *
 import warnings
 warnings.filterwarnings('ignore')
 
+load_dotenv(override=True)
+print("ENV VALUE:", os.getenv("MONGO_URL"))
+
+#print("MONGODB_URL:", os.getenv("MONGODB_URL"))
+#print("MONGODB_URL_KEY:", os.getenv("MONGODB_URL_KEY"))
+
 app = FastAPI()
 
 
+
 templates = Jinja2Templates(directory='templates')
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    return templates.TemplateResponse("customer.html", {"request": request})
 
 
 origins = ["*"]
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+#app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 app.add_middleware(
@@ -33,8 +53,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-class DataForm:
+class CustomerData(BaseModel):
+    Age: int
+    Education: int
+    Marital_Status: int
+    Parental_Status: int
+    Children: int
+    Income: float
+    Total_Spending: float
+    Days_as_Customer: int
+    Recency: int
+    Wines: int
+    Fruits: int
+    Meat: int
+    Fish: int
+    Sweets: int
+    Gold: int
+    Web: int
+    Catalog: int
+    Store: int
+    Discount_Purchases: int
+    Total_Promo: int
+    NumWebVisitsMonth: int
+
+
+"""class DataForm:
     def __init__(self, request: Request):
         self.request: Request = request
         self.Age : Optional[str] = None
@@ -60,7 +105,7 @@ class DataForm:
         self.NumWebVisitsMonth  : Optional[str] = None
         
 
-    async def get_customer_data(self):
+async def get_customer_data(self):
         form =  await self.request.form()
         self.Age = form.get('Age')
         self.Education = form.get('Education')
@@ -82,22 +127,33 @@ class DataForm:
         self.Store = form.get('Store')
         self.Discount_Purchases = form.get('Discount_Purchases')
         self.Total_Promo = form.get('Total_Promo')
-        self.NumWebVisitsMonth = form.get('NumWebVisitsMonth')
+        self.NumWebVisitsMonth = form.get('NumWebVisitsMonth')"""
 
 @app.get("/train")
 async def trainRouteClient():
     try:
-        train_pipeline = TrainPipeline()
+        pipeline = TrainPipeline()
 
-        train_pipeline.run_pipeline()
+        pipeline.run_pipeline()
 
-        return Response("Training successful !!")
+        return JSONResponse(content={"status": True, "message": "Training successful!"})
 
     except Exception as e:
-        return Response(f"Error Occurred! {e}")
+        import traceback
+        print("TRAIN ERROR:")
+        traceback.print_exc()
+        
+        return JSONResponse(content={"status": False, "error": str(e)},status_code=500)
+    
+    
+@app.get("/test_env")
+async def test_env():
+    mongo_url = os.getenv("MONGO_DB_URL")
+    return {"MONGO_URL": mongo_url }
+            
 
 
-@app.get("/")
+"""@app.get("/test_env")
 async def predictGetRouteClient(request: Request):
     try:
 
@@ -107,53 +163,127 @@ async def predictGetRouteClient(request: Request):
         )
 
     except Exception as e:
-        return Response(f"Error Occurred! {e}")
-
+        return Response(f"Error Occurred! {e}")"""
+        
+    
+    
 @app.post("/")
 async def predictRouteClient(request: Request):
     try:
-        form = DataForm(request)
-        
-        await form.get_customer_data()
-        
-        input_data = [form.Age, 
-                    form.Education, 
-                    form.Marital_Status, 
-                    form.Parental_Status, 
-                    form.Children, 
-                    form.Income, 
-                    form.Total_Spending, 
-                    form.Days_as_Customer, 
-                    form.Recency, 
-                    form.Wines, 
-                    form.Fruits, 
-                    form.Meat, 
-                    form.Fish, 
-                    form.Sweets, 
-                    form.Gold, 
-                    form.Web, 
-                    form.Catalog, 
-                    form.Store, 
-                    form.Discount_Purchases, 
-                    form.Total_Promo, 
-                    form.NumWebVisitsMonth]
+        data = await request.form()
+        print("Received data:", data)
+        input_data = [int(data.get('Age')),
+                    int(data.get('Education')),
+                    int(data.get('Marital_Status')),
+                    int(data.get('Parental_Status')),
+                    int(data.get('Children')), 
+                    int(data.get('Income')), 
+                    float(data.get('Total_Spending')), 
+                    int(data.get('Days_as_Customer')), 
+                    int(data.get('Recency')), 
+                    int(data.get('Wines')), 
+                    int(data.get('Fruits')), 
+                    int(data.get('Meat')), 
+                    int(data.get('Fish')), 
+                    int(data.get('Sweets')), 
+                    int(data.get('Gold')), 
+                    int(data.get('Web')), 
+                    int(data.get('Catalog')), 
+                    int(data.get('Store')), 
+                    int(data.get('Discount_Purchases')), 
+                    int(data.get('Total_Promo')), 
+                    int(data.get('NumWebVisitsMonth'))]
+        # ================== VALIDATION START ==================
+
+        Age = int(data.get("Age"))
+        Income = float(data.get("Income"))
+        Total_Spending = float(data.get("Total_Spending"))
+        Days_as_Customer = int(data.get("Days_as_Customer"))
+        if Age < 18 or Age > 100:
+            return templates.TemplateResponse("customer.html",{"request": request, "result": "Invalid Age ❌"})
+
+        if Income < 0 or Income > 10000000:
+            return templates.TemplateResponse("customer.html",{"request": request, "result": "Invalid Income ❌"})
+
+        if Total_Spending < 0:
+            return templates.TemplateResponse("customer.html",{"request": request, "result": "Invalid Spending ❌"})
+
+        if Days_as_Customer < 0:
+            return templates.TemplateResponse("customer.html",{"request": request, "result": "Invalid Customer Days ❌"})
+
+        #{"request": request, "result": "Invalid Spending ❌"}
+
+        if Days_as_Customer < 0:
+            return templates.TemplateResponse( "customer.html",{"request": request, "result": "Invalid Customer Days ❌"})
+
+# ================== VALIDATION END ==================
         
         prediction_pipeline = PredictionPipeline()
         predicted_cluster = prediction_pipeline.run_pipeline(input_data=input_data)
-       
-        
-        # model_predictor = Customer_segmentation_Classifier()
-
-        # predicted_cluster = model_predictor.predict(customer_data_df)
-        return templates.TemplateResponse(
-            "customer.html",
-            {"request": request, "context": int(predicted_cluster[0])}
-        )
+        #resp={"predicted_cluster": int(predicted_cluster[0])}
+        cluster = int(predicted_cluster[0])
+        if cluster == 0:
+            label = "Basic Customer"
+            color = "#f8c471"
+        elif cluster == 1:
+            label = "Loyal Customer"
+            color = "#c3e6cb"
+        elif cluster == 2:
+            label = "Premium Customer"
+            color = "#bee5eb"
+        #return JSONResponse(content=resp)
+        return templates.TemplateResponse("customer.html", {"request": request, "result": label, "bg_color": color, "text_color": "#333"})
 
     except Exception as e:
-        return {"status": False, "error": f"{e}"}
+        print("PREDICTION ERROR:",  e)
+        return JSONResponse(content={"status": False, "error": str(e)}, status_code=500)
+
+
+@app.post("/api/predict")
+async def predict_api(data: CustomerData):
+    try:
+        input_data = [
+            data.Age,
+            data.Education,
+            data.Marital_Status,
+            data.Parental_Status,
+            data.Children,
+            data.Income,
+            data.Total_Spending,
+            data.Days_as_Customer,
+            data.Recency,
+            data.Wines,
+            data.Fruits,
+            data.Meat,
+            data.Fish,
+            data.Sweets,
+            data.Gold,
+            data.Web,
+            data.Catalog,
+            data.Store,
+            data.Discount_Purchases,
+            data.Total_Promo,
+            data.NumWebVisitsMonth
+        ]
+
+        prediction_pipeline = PredictionPipeline()
+        predicted_cluster = prediction_pipeline.run_pipeline(input_data=input_data)
+
+        return {"predicted_cluster": int(predicted_cluster[0])}
+
+    except Exception as e:
+        return JSONResponse(
+            content={"status": False, "error": str(e)},
+            status_code=500
+        )
 
 
 if __name__ == "__main__":
-    app_run(app, host = APP_HOST, port =APP_PORT)
+    import uvicorn
+    
+    #print("MONGODB_URL:", os.getenv("MONGODB_URL"))
+    #print("MONGODB_URL_KEY:", os.getenv("MONGODB_URL_KEY"))
+    
+    
+    uvicorn.run("app:app", host = "127.0.0.1", port =5000, reload=True)
     
